@@ -1,0 +1,93 @@
+version: '3'
+
+services:
+
+  postgres:
+    restart: always
+    build: ./containers/postgres
+    container_name: postgres
+    environment:
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    # ports:
+    #   - 15432:5432
+    networks:
+      - backend_network
+
+  # postgrest:
+  #   build: ./containers/postgrest
+  #   container_name: postgrest
+  #   # environment:
+  #   #   PGRST_DB_URI: postgres://postgres:postgres@postgres:5432/postgres
+  #   #   PGRST_OPENAPI_SERVER_PROXY_URI: http://postgrest:5433
+  #   #   PGRST_DB_SCHEMA: public
+  #   #   PGRST_DB_ANON_ROLE: "postgrest"
+  #   #   PGRST_SERVER_PORT: 5433
+  #   volumes:
+  #     - ./containers/postgrest/postgrest.conf:/etc/postgrest.conf
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - backend_network
+
+  postgraphile:
+    build: ./containers/postgraphile
+    container_name: postgraphile
+    depends_on:
+      - postgres
+    restart: on-failure:20
+    networks:
+      - backend_network
+
+  fastapi:
+    restart: always
+    build: 
+      context: ./containers/fastapi
+    container_name: 'fastapi'
+    depends_on:
+      - postgres
+    tty: true
+    ports:
+      - "5433:5433"
+    volumes:
+      - "./fastapi:/root/opt"
+    networks:
+      - backend_network
+  
+
+  nginx:
+    build: ./containers/nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      #- ./cert:/etc/letsencrypt
+      - ./containers/nginx:/etc/nginx/conf.d
+    depends_on:
+      - postgres
+      - postgraphile
+#      - postgrest
+      - fastapi
+    networks:
+      - backend_network
+
+  pgadmin4:
+    build: ./containers/pgadmin
+    container_name: pgadmin
+    ports:
+        - "8888:80"
+    volumes:
+        - ./pgadmin_data:/var/lib/pgadmin
+    environment:
+        PGADMIN_DEFAULT_EMAIL: docker@docker.com
+        PGADMIN_DEFAULT_PASSWORD: docker
+        PGADMIN_LISTEN_PORT: 88
+    depends_on:
+      - postgres
+    networks:
+      - backend_network
+
+networks:
+  backend_network:
+    driver: bridge

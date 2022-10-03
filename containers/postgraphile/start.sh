@@ -1,0 +1,15 @@
+pnpx postgraphile \
+  --subscriptions \
+  --watch \ 
+  --dynamic-json \
+  --no-setof-functions-contain-nulls \
+  --no-ignore-rbac \
+  --show-error-stack=json \
+  --enhance-graphiql \
+  --allow-explain \
+  --enable-query-batching \
+  --connection 'postgres://postgres:postgres@postgres:5432/postgres' \ 
+  --host postgraphile \ 
+  --port 5434 \ 
+  --schema 'public' 
+  --default-role  'postgres'
